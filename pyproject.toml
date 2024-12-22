@@ -1,0 +1,40 @@
+[tool.poetry]
+name = "wth-rpi"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{ include = "src" }]
+
+[tool.poetry.dependencies]
+python = "<3.13,>=3.10"
+soundfile = "^0.12.1"
+sounddevice = "^0.5.1"
+numpy = "^2.2.1"
+webrtcvad-wheels = "^2.0.14"
+uvloop = "^0.21.0"
+requests = "^2.32.3"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.8.4"
+poethepoet = "^0.31.1"
+rich = "^13.9.4"
+
+[tool.poetry.group.jupyter]
+optional = true
+
+[tool.poetry.group.jupyter.dependencies]
+ipykernel = "*"
+ipympl = "*"
+ipywidgets = "*"
+ipywebrtc = "*"
+
+[tool.ruff.lint]
+select = ["D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
