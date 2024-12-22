@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import os
+import time
 
 import requests
 import uvloop
@@ -74,6 +75,7 @@ async def main():
             playback_speed=CHINESE_SPEED if IS_CHINESE else ENGLISH_SPEED
         )
         play(audio)
+        time.sleep(1)
         can_listen = True
 
     req_queue = []

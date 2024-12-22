@@ -3,6 +3,7 @@
 import asyncio
 import io
 import logging
+import time
 from typing import AsyncGenerator
 
 import numpy as np
@@ -17,6 +18,8 @@ FRAME_SIZE = 30  # ms, either 10, 20, or 30
 BLOCK_SIZE = int(SAMPLE_RATE * FRAME_SIZE / 1000)  # samples
 VAD_AGRESSIVENESS = 3  # 0 to 3
 MIN_DURATION = 0.5  # seconds
+MAX_DECAY_COUNT = 30  # 30 frames * 30 ms = 0.9s
+INI_DECAY_COUNT = -10  # 10 frames * 30 ms = 300ms
 
 
 async def input_stream() -> AsyncGenerator[np.ndarray, None]:
@@ -48,7 +51,15 @@ async def voice_stream() -> AsyncGenerator[io.BytesIO, None]:
     vad = webrtcvad.Vad(VAD_AGRESSIVENESS)
     try:
         is_during = False
+
         buf = []
+        decay_counter = INI_DECAY_COUNT
+
+        def _reset():
+            nonlocal buf, decay_counter
+            buf.clear()
+            decay_counter = INI_DECAY_COUNT
+
         async for block in stream:
             block = block[:, 0]
             is_speech = vad.is_speech(block.tobytes(), SAMPLE_RATE)
@@ -56,23 +67,27 @@ async def voice_stream() -> AsyncGenerator[io.BytesIO, None]:
             if is_speech and not is_during:
                 # log.info("Start voice!")
                 is_during = True
-                buf.clear()
+                _reset()
             elif is_speech and is_during:
-                pass
+                decay_counter += 1
+                decay_counter = min(decay_counter, MAX_DECAY_COUNT)
             elif not is_speech and is_during:
-                # log.info("End voice!")
-                is_during = False
+                decay_counter -= 1
+                if decay_counter <= 0:
+                    # log.info("End voice!")
+                    is_during = False
+                    wav = np.concatenate(buf).reshape(-1, 1)
+                    _reset()
 
-                wav = np.concatenate(buf).reshape(-1, 1)
-                buf.clear()
+                    if len(wav) < int(MIN_DURATION * SAMPLE_RATE):
+                        continue
 
-                if len(wav) < int(MIN_DURATION * SAMPLE_RATE):
-                    continue
-
-                file = io.BytesIO()
-                await asyncio.to_thread(sf.write, file, wav, SAMPLE_RATE, format="flac")
-                file.seek(0)
-                yield file
+                    file = io.BytesIO()
+                    await asyncio.to_thread(
+                        sf.write, file, wav, SAMPLE_RATE, format="flac"
+                    )
+                    file.seek(0)
+                    yield file
             elif not is_speech and not is_during:
                 pass
 
