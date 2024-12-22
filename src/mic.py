@@ -16,6 +16,7 @@ SAMPLE_RATE = 48000
 FRAME_SIZE = 30  # ms, either 10, 20, or 30
 BLOCK_SIZE = int(SAMPLE_RATE * FRAME_SIZE / 1000)  # samples
 VAD_AGRESSIVENESS = 3  # 0 to 3
+MIN_DURATION = 1  # seconds
 
 
 async def input_stream() -> AsyncGenerator[np.ndarray, None]:
@@ -42,6 +43,7 @@ async def input_stream() -> AsyncGenerator[np.ndarray, None]:
 
 
 async def voice_stream() -> AsyncGenerator[io.BytesIO, None]:
+    """Generator that yields voice data as io.BytesIO."""
     stream = input_stream()
     vad = webrtcvad.Vad(VAD_AGRESSIVENESS)
     try:
@@ -52,18 +54,21 @@ async def voice_stream() -> AsyncGenerator[io.BytesIO, None]:
             is_speech = vad.is_speech(block.tobytes(), SAMPLE_RATE)
 
             if is_speech and not is_during:
-                log.info("Start voice!")
+                # log.info("Start voice!")
                 is_during = True
                 buf.clear()
             elif is_speech and is_during:
                 pass
             elif not is_speech and is_during:
-                log.info("End voice!")
+                # log.info("End voice!")
                 is_during = False
 
-                # upload code
                 wav = np.concatenate(buf).reshape(-1, 1)
                 buf.clear()
+
+                if len(wav) < MIN_DURATION * SAMPLE_RATE:
+                    continue
+
                 file = io.BytesIO()
                 sf.write(file, wav, SAMPLE_RATE, format="flac")
                 file.seek(0)
@@ -79,6 +84,7 @@ async def voice_stream() -> AsyncGenerator[io.BytesIO, None]:
 
 
 async def main():
+    """Test entrypoint."""
     logging.basicConfig(level=logging.INFO)
 
     can_play = False
