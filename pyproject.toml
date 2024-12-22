@@ -15,6 +15,9 @@ webrtcvad-wheels = "^2.0.14"
 uvloop = "^0.21.0"
 requests = "^2.32.3"
 python-dotenv = "^1.0.1"
+gtts = "^2.5.4"
+pydub = "^0.25.1"
+pyaudio = "^0.2.14"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.8.4"

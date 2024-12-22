@@ -16,7 +16,7 @@ SAMPLE_RATE = 48000
 FRAME_SIZE = 30  # ms, either 10, 20, or 30
 BLOCK_SIZE = int(SAMPLE_RATE * FRAME_SIZE / 1000)  # samples
 VAD_AGRESSIVENESS = 3  # 0 to 3
-MIN_DURATION = 1  # seconds
+MIN_DURATION = 0.5  # seconds
 
 
 async def input_stream() -> AsyncGenerator[np.ndarray, None]:
@@ -66,11 +66,11 @@ async def voice_stream() -> AsyncGenerator[io.BytesIO, None]:
                 wav = np.concatenate(buf).reshape(-1, 1)
                 buf.clear()
 
-                if len(wav) < MIN_DURATION * SAMPLE_RATE:
+                if len(wav) < int(MIN_DURATION * SAMPLE_RATE):
                     continue
 
                 file = io.BytesIO()
-                sf.write(file, wav, SAMPLE_RATE, format="flac")
+                await asyncio.to_thread(sf.write, file, wav, SAMPLE_RATE, format="flac")
                 file.seek(0)
                 yield file
             elif not is_speech and not is_during:
