@@ -20,9 +20,9 @@ load_dotenv()
 
 AUTH = HTTPBasicAuth("user", os.getenv("TOKEN"))
 URL = "https://wth.interpause.dev"
-IS_CHINESE = False
+IS_CHINESE = True
 ENGLISH_SPEED = 1.5
-CHINESE_SPEED = 2.0
+CHINESE_SPEED = 1.2
 
 log = logging.getLogger(__name__)
 
@@ -30,14 +30,13 @@ log = logging.getLogger(__name__)
 def system_prompt():
     """System prompt."""
     # TODO: select language.
+    path = "/home/wth/DTI_catbot/wth-rpi/ch-prompt.txt" if IS_CHINESE else "/home/wth/DTI_catbot/wth-rpi/en-prompt.txt"
+    with open(path, "r") as f:
+        txt = f.read()
     return [
         {
             "role": "system",
-            "content": "You can communicate in both English and Chinese. As a direct sound2text model, you are also further able to understand sounds, including guessing the gender and emotions of a person based their voice.",
-        },
-        {
-            "role": "assistant",
-            "content": "Hello, how can I help you?",
+            "content": txt,
         },
     ]
 
@@ -69,7 +68,7 @@ async def main():
         history = convo
         log.info(history)
         log.info(model_text)
-        tts_mp3 = speak_with_speed(model_text, language="en")
+        tts_mp3 = speak_with_speed(model_text, language="zh-CN" if IS_CHINESE else "en")
         audio = AudioSegment.from_file(tts_mp3, format="mp3")
         audio = audio.speedup(
             playback_speed=CHINESE_SPEED if IS_CHINESE else ENGLISH_SPEED
