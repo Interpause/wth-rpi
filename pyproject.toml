@@ -18,6 +18,8 @@ python-dotenv = "^1.0.1"
 gtts = "^2.5.4"
 pydub = "^0.25.1"
 pyaudio = "^0.2.14"
+lingua-language-detector = "^2.0.2"
+langcodes = "^3.5.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.8.4"

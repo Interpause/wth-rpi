@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 from pydub import AudioSegment
 from pydub.playback import play
 from requests.auth import HTTPBasicAuth
+from lingua import Language, LanguageDetectorBuilder
+from langcodes import standardize_tag
 
 from src.text2speech import speak_with_speed
 
@@ -21,8 +23,7 @@ load_dotenv()
 AUTH = HTTPBasicAuth("user", os.getenv("TOKEN"))
 URL = "https://wth.interpause.dev"
 IS_CHINESE = True
-ENGLISH_SPEED = 1.5
-CHINESE_SPEED = 1.2
+SPEED = 1.2
 
 log = logging.getLogger(__name__)
 
@@ -59,6 +60,15 @@ async def main():
     """Main."""
     logging.basicConfig(level=logging.INFO)
 
+    detector = LanguageDetectorBuilder.from_languages(
+        Language.ENGLISH,
+        Language.JAPANESE,
+        Language.CHINESE,
+        Language.KOREAN,
+        Language.MALAY,
+        Language.TAMIL,
+    ).with_preloaded_language_models().build()
+
     history = system_prompt()
     can_listen = True
 
@@ -68,11 +78,11 @@ async def main():
         history = convo
         log.info(history)
         log.info(model_text)
-        tts_mp3 = speak_with_speed(model_text, language="zh-CN" if IS_CHINESE else "en")
+        lang = detector.detect_language_of(model_text)
+        lang = standardize_tag(lang.iso_code_639_3.name)
+        tts_mp3 = speak_with_speed(model_text, language=lang)
         audio = AudioSegment.from_file(tts_mp3, format="mp3")
-        audio = audio.speedup(
-            playback_speed=CHINESE_SPEED if IS_CHINESE else ENGLISH_SPEED
-        )
+        audio = audio.speedup(playback_speed=SPEED)
         play(audio)
         time.sleep(1)
         can_listen = True
